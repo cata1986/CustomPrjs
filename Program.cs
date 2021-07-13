@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -168,14 +169,14 @@ namespace GenerateUmbracoDocTypeModels
                                                     new XElement("AllowedTemplates")),
                                                 new XElement("Structure"),
                                                 new XElement("GenericProperties",
-                                                    from property in properties
+                                                    from property in properties.Where(p => !ignoreTypes.Contains(p.Name))
                                                     select
                                                         new XElement("GenericProperty",
                                                         new XElement("Key", Guid.NewGuid()),
                                                         new XElement("Name", property.Name),
                                                         new XElement("Alias", property.Name),
-                                                        new XElement("Definition", GetUmbracoTypeIdAndName(property.PropertyType.Name).TypeId),
-                                                        new XElement("Type", GetUmbracoTypeIdAndName(property.PropertyType.Name).TypeName),
+                                                        new XElement("Definition", GetUmbracoTypeIdAndName(property, displayTextLabelProperties).TypeId),
+                                                        new XElement("Type", GetUmbracoTypeIdAndName(property, displayTextLabelProperties).TypeName),
                                                         new XElement("Mandatory", "false"),
                                                         new XElement("Validation"),
                                                         new XElement("Description", new XCData(descriptionAttributes.Any(a => a.StartsWith(property.Name + "_")) ? descriptionAttributes.First(a => a.StartsWith(property.Name + "_")).Remove(0, (property.Name + "_").Length) : string.Empty)),
@@ -196,9 +197,13 @@ namespace GenerateUmbracoDocTypeModels
             return (docTypeId, typeName);
         }
 
-        static (string TypeId, string TypeName) GetUmbracoTypeIdAndName(string propertyTypeName)
+        static (string TypeId, string TypeName) GetUmbracoTypeIdAndName(PropertyInfo property, List<string> displayTextLabelProperties = null)
         {
-            switch (propertyTypeName)
+            if(displayTextLabelProperties != null && displayTextLabelProperties.Contains(property.Name))
+                //DisplayTextLabel
+                return ("7a8a43d1-402c-4fbe-b7fc-f217aa619436", "Umbraco.NestedContent");
+
+            switch (property.PropertyType.Name)
             {
                 case "Guid":
                 case "String":
@@ -213,8 +218,7 @@ namespace GenerateUmbracoDocTypeModels
                     return ("5046194e-4237-453c-a547-15db3a07c4e1", "Umbraco.DateTime");
                 case "CroppedImageBase":
                     return ("135d60e0-64d9-49ed-ab08-893c9ba44ae5", "Umbraco.MediaPicker");
-                case "DisplayTextLabel[]":
-                case "IEnumerable`1":
+                case "DisplayTextLabel":
                     return ("7a8a43d1-402c-4fbe-b7fc-f217aa619436", "Umbraco.NestedContent");
                 default:
                     return ("", "undefined");
