@@ -250,6 +250,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomAttributes\CustomContentAttribute.cs" />
     <Compile Include="CustomAttributes\IgnoreTypeAttribute.cs" />
     <Compile Include="CustomAttributes\CustomTypeAttribute.cs" />
     <Compile Include="Helpers\InitializationHelper.cs" />

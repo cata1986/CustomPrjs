@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GenerateUmbracoDocTypeModels.CustomAttributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,8 @@ namespace GenerateUmbracoDocTypeModels.Model
     {
         ITestGiftShopItemPickerDetailsElement GiftShopItemPickerDetails { get; set; }
     }
+
+    [CustomContent("GenerateUmbracoDocTypeModels.Model.TestGiftShopItemPickerDetailsElement")]
     public class TestHasGiftShopItemPickerDetailsElement : BaseContentModel, ITestHasGiftShopItemPickerDetailsElement
     {
         public ITestGiftShopItemPickerDetailsElement GiftShopItemPickerDetails { get; set; }

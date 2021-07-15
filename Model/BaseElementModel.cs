@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GenerateUmbracoDocTypeModels.CustomAttributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,8 +14,11 @@ namespace GenerateUmbracoDocTypeModels.Model
     }
     public class BaseElementModel : IBaseElementModel
     {
+        [IgnoreType(true)]
         public string Name { get; set; }
+        [IgnoreType(true)]
         public Guid Key { get; set; }
+        [IgnoreType(true)]
         public string ContentTypeAlias { get; set; } // Do we need this?
     }
 }

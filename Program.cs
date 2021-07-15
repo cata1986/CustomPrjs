@@ -25,7 +25,7 @@ namespace GenerateUmbracoDocTypeModels
 
 
 
-            var type = typeof(TestGiftShopItemPickerDetailsElement);            
+            var type = typeof(TestGiftShopItemPickerDetailsElement);
 
             var interfTypes = type.GetInterfaces();
             var compositions = new List<(Guid docTypeId, string docTypeName)>();
@@ -52,24 +52,41 @@ namespace GenerateUmbracoDocTypeModels
 
             if (compositions.Any())
             {
-                var folderPathInsideGeneratedFile1 = $"Feature/{type.Name}/Compositions";
+                var folderPathInsideGeneratedFile1 = $"Feature/{type.Name}/Elements";
                 var folderPath1 = GetFolderPath(folderPathInsideGeneratedFile1);
 
                 GenerateUmbracoCompositionDocType(type, type.Name, folderPath1, folderPathInsideGeneratedFile1, true, compositions);
             }
 
+            var folderPathInsideGeneratedFile2 = $"Feature/{nameof(TestGiftShopItemPickerDetailsElement)}/Compositions";
+            var folderPath2 = GetFolderPath(folderPathInsideGeneratedFile2);
+
+            var contentAttribute = (CustomContentAttribute[])typeof(TestHasGiftShopItemPickerDetailsElement).GetCustomAttributes(typeof(CustomContentAttribute), false);
+            if (contentAttribute.Length != 0)
+            {
+                string classFullName = contentAttribute[0].ContentName;
+                if (classFullName == typeof(TestGiftShopItemPickerDetailsElement).FullName)
+                {
+                    //var type2 = Type.GetType(classFullName);
+                    var folderPathInsideGeneratedFile3 = $"Feature/{type.Name}";
+                    var folderPath3 = GetFolderPath(folderPathInsideGeneratedFile3, isContentPath: false);
+
+                    var result = GenerateUmbracoDataType(nameof(TestGiftShopItemPickerDetailsElement) + "Loader", nameof(TestGiftShopItemPickerDetailsElement), folderPath3, folderPathInsideGeneratedFile3);
+                    GenerateUmbracoDocType(typeof(TestHasGiftShopItemPickerDetailsElement), nameof(TestHasGiftShopItemPickerDetailsElement), folderPath2, folderPathInsideGeneratedFile2, false, Tuple.Create(result.docTypeId, result.docTypeName));
+                }
+            }
 
             Console.WriteLine("done!");
             //Console.ReadKey();
         }
 
-        private static string GetFolderPath(string folderPathInsideGeneratedFile)
+        private static string GetFolderPath(string folderPathInsideGeneratedFile, bool isContentPath = true)
         {
             var appPath = AppDomain.CurrentDomain.BaseDirectory;
             appPath = @"E:\VistaSource\Develop\Vista.Digital.Curzon\_localwebroot\";
             var rootPrjPath = appPath.Replace(@"_localwebroot\", string.Empty);
 
-            var savePartialPath = @"src\Project\Website\code\uSync\v8\ContentTypes";
+            var savePartialPath = isContentPath ? @"src\Project\Website\code\uSync\v8\ContentTypes" : @"src\Project\Website\code\uSync\v8\DataTypes";
 
             //folderPathInsideGeneratedFile = @"Feature/Test+Model/Elements";
             //var folderPathStoreGeneratedFile = @"feature/test-model/elements";
@@ -103,9 +120,9 @@ namespace GenerateUmbracoDocTypeModels
                                                     new XElement("Variations", "Nothing"),
                                                     new XElement("IsElement", isElement),
                                                     new XElement("Folder", umbracoFolderPath),
-                                                    new XElement("Compositions", 
+                                                    new XElement("Compositions",
                                                         from composition in compositions
-                                                        select 
+                                                        select
                                                             new XElement("Composition",
                                                                 new XAttribute("Key", composition.docTypeId), composition.docTypeName)
                                                     ),
@@ -119,7 +136,7 @@ namespace GenerateUmbracoDocTypeModels
             doc.Save($"{folderPath}/{typeName.ToLower()}.config");
         }
 
-        private static (Guid docTypeId, string docTypeName) GenerateUmbracoDocType(Type type, string typeName, string folderPath, string umbracoFolderPath, bool isElement)
+        private static (Guid docTypeId, string docTypeName) GenerateUmbracoDocType(Type type, string typeName, string folderPath, string umbracoFolderPath, bool isElement,  Tuple<Guid, string> overrideDocProperty = null)
         {
             var docTypeId = Guid.NewGuid();
 
@@ -148,7 +165,7 @@ namespace GenerateUmbracoDocTypeModels
                                                 .ToList();
 
             //we will always have the props inside only one content group tab
-            var tabName = "Content for " + typeName;
+            var tabName = "Content";// for " + typeName;
 
             XDocument doc = new XDocument(new XElement("ContentType",
                                                     new XAttribute("Key", docTypeId),
@@ -175,8 +192,8 @@ namespace GenerateUmbracoDocTypeModels
                                                         new XElement("Key", Guid.NewGuid()),
                                                         new XElement("Name", property.Name),
                                                         new XElement("Alias", property.Name),
-                                                        new XElement("Definition", GetUmbracoTypeIdAndName(property, displayTextLabelProperties).TypeId),
-                                                        new XElement("Type", GetUmbracoTypeIdAndName(property, displayTextLabelProperties).TypeName),
+                                                        new XElement("Definition", overrideDocProperty != null ? overrideDocProperty.Item1.ToString() : GetUmbracoTypeIdAndName(property, displayTextLabelProperties).TypeId),
+                                                        new XElement("Type", overrideDocProperty != null ? overrideDocProperty.Item2 : GetUmbracoTypeIdAndName(property, displayTextLabelProperties).TypeName),
                                                         new XElement("Mandatory", "false"),
                                                         new XElement("Validation"),
                                                         new XElement("Description", new XCData(descriptionAttributes.Any(a => a.StartsWith(property.Name + "_")) ? descriptionAttributes.First(a => a.StartsWith(property.Name + "_")).Remove(0, (property.Name + "_").Length) : string.Empty)),
@@ -197,9 +214,45 @@ namespace GenerateUmbracoDocTypeModels
             return (docTypeId, typeName);
         }
 
+        private static (Guid docTypeId, string docTypeName) GenerateUmbracoDataType(string dataTypeName, string contentTypeName, string folderPath, string umbracoFolderPath)
+        {
+            var dataTypeId = Guid.NewGuid();
+
+            var cdata = @"{""ContentTypes"": [
+                                            {
+                                              ""ncAlias"": ""contentTypeName"",
+                                              ""ncTabAlias"": ""Content"", 
+                                              ""nameTemplate"": """"
+                                            }
+                                          ],
+                            ""MinItems"": null,
+                            ""MaxItems"": null,
+                            ""ConfirmDeletes"": true,
+                            ""ShowIcons"": false,
+                            ""HideLabel"": false}";
+            //Content
+            cdata = cdata.Replace("contentTypeName", contentTypeName);
+
+            XDocument doc = new XDocument(new XElement("DataType",
+                                                    new XAttribute("Key", dataTypeId),
+                                                    new XAttribute("Alias", dataTypeName),
+                                                    new XAttribute("Level", 3),
+                                                new XElement("Info",
+                                                    new XElement("Name", dataTypeName),
+                                                    new XElement("EditorAlias", "Umbraco.NestedContent"),
+                                                    new XElement("DatabaseType", "Ntext"),
+                                                    new XElement("Folder", umbracoFolderPath)),
+                                                new XElement("Config", new XCData(cdata))
+                                                ));
+
+            doc.Save($"{folderPath}/{dataTypeName}.config");
+
+            return (dataTypeId, dataTypeName);
+        }
+
         static (string TypeId, string TypeName) GetUmbracoTypeIdAndName(PropertyInfo property, List<string> displayTextLabelProperties = null)
         {
-            if(displayTextLabelProperties != null && displayTextLabelProperties.Contains(property.Name))
+            if (displayTextLabelProperties != null && displayTextLabelProperties.Contains(property.Name))
                 //DisplayTextLabel
                 return ("7a8a43d1-402c-4fbe-b7fc-f217aa619436", "Umbraco.NestedContent");
 
@@ -218,8 +271,8 @@ namespace GenerateUmbracoDocTypeModels
                     return ("5046194e-4237-453c-a547-15db3a07c4e1", "Umbraco.DateTime");
                 case "CroppedImageBase":
                     return ("135d60e0-64d9-49ed-ab08-893c9ba44ae5", "Umbraco.MediaPicker");
-                case "DisplayTextLabel":
-                    return ("7a8a43d1-402c-4fbe-b7fc-f217aa619436", "Umbraco.NestedContent");
+                //case "DisplayTextLabel":
+                //    return ("7a8a43d1-402c-4fbe-b7fc-f217aa619436", "Umbraco.NestedContent");
                 default:
                     return ("", "undefined");
             }
